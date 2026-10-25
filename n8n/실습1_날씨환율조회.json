@@ -1,0 +1,133 @@
+{
+  "name": "실습1_날씨환율조회",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://api.open-meteo.com/v1/forecast?latitude=37.5665&longitude=126.9780&current_weather=true",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "76b38f01-96de-45ad-aa1a-0c113cb2cffe",
+      "name": "날씨조회"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        32,
+        0
+      ],
+      "id": "2296c12d-1bcc-465d-a3b4-f7344fb5fc6e",
+      "name": "Execute workflow"
+    },
+    {
+      "parameters": {
+        "url": "https://api.frankfurter.dev/v1/latest?base=USD&symbols=KRW,JPY",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        432,
+        0
+      ],
+      "id": "51b656a8-a014-4288-b480-50b6aa1aa419",
+      "name": "환율조회"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d9fbf788-8e77-4c29-ab79-a22db36b5ff2",
+              "name": "weather_message",
+              "value": "={{ '서울 현재 기온은 ' + $('날씨조회').item.json.current_weather.temperature + '도, 바람은 시속 ' + $('날씨조회').item.json.current_weather.windspeed + 'km 입니다.' }}",
+              "type": "string"
+            },
+            {
+              "id": "f36f34a7-d08a-45b5-9949-7513a568bbda",
+              "name": "rate_message",
+              "value": "={{ '1달러는 ' + $('환율조회').item.json.rates.KRW + '원, 100엔은 ' + Math.round($('환율조회').item.json.rates.KRW / $('환율조회').item.json.rates.JPY * 100) + '원입니다. (' + $('환율조회').item.json.date + '고시)' }}",
+              "type": "string"
+            },
+            {
+              "id": "670214c2-f24b-4c36-ba23-2d6551460c8a",
+              "name": "usd_krw",
+              "value": "=  {{ $('환율조회').item.json.rates.KRW }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        672,
+        0
+      ],
+      "id": "967fee72-8419-4e83-a717-7031eb615eb8",
+      "name": "브리핑작성"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Execute workflow": {
+      "main": [
+        [
+          {
+            "node": "날씨조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "날씨조회": {
+      "main": [
+        [
+          {
+            "node": "환율조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "환율조회": {
+      "main": [
+        [
+          {
+            "node": "브리핑작성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "브리핑작성": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "d896af29-8e3f-4ae2-b0a7-dfa8ca71c622",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2053fbf4932b51fffb1369c3ebab82155021e5c6829c330c594ef147f4f06aae"
+  },
+  "nodeGroups": [],
+  "id": "xN0aglyGZ21XcMVa",
+  "tags": []
+}

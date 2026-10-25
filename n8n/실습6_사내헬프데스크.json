@@ -1,0 +1,180 @@
+{
+  "name": "실습6_사내헬프데스크",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        0
+      ],
+      "id": "affd75e4-2f5c-4dcc-abd0-f9d789dc0df3",
+      "name": "When chat message received",
+      "webhookId": "2008d3b3-7dfe-4443-94d8-5ff2d90b34d2"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "당신은 사내 헬프데스크 AI입니다. 임직원의 사내 규정 문의에 답합니다.\n아래 <faq> 태그 안의 정보만을 근거로 답변하세요. FAQ에 없는 내용은 절대 추측해서 답변하지 마세요.\n\n<faq>\nQ: 연차는 어떻게 신청하나요?\nA: 인사시스템 > 근태 > 연차신청에서 사용일 3일 전까지 신청하며, 팀장 승인 후 확정됩니다. 당일 신청은 팀장에게 유선으로 먼저 알린 뒤 사후 등록합니다.\n\nQ: 사내 계정 비밀번호를 잊어버렸어요.\nA: IT 헬프데스크 포털의 '비밀번호 초기화' 메뉴에서 휴대폰 본인 인증 후 직접 재설정할 수 있습니다. 포털 접속이 안 되면 내선 1234로 연락하세요.\n\nQ: 경비는 어떻게 처리하나요?\nA: ERP > 경비정산에서 영수증 사진을 첨부해 사용일로부터 7일 이내에 신청합니다. 월 마감은 매월 25일이며, 마감 이후 건은 다음 달에 처리됩니다.\n\nQ: 재택근무는 어떻게 신청하나요?\nA: 주 2회까지 가능하며, 전날 17시까지 인사시스템 > 근태 > 재택신청에서 팀장 승인을 받아야 합니다.\n</faq>\n\nFAQ에 명확히 답이 있는 질문에는 정확하고 간결하게 답변하세요.\n\n아래 경우에는 반드시 handoff_to_human 도구를 호출해 담당자에게 이관하세요.\n- FAQ에 없는 질문 (예: 법인카드 한도, 복지포인트, 특정 부서 연락처)\n- 본인의 연차 잔여일수, 급여처럼 개인 정보 조회가 필요한 질문\n- 불만이나 민원 성격의 문의\n\nhandoff_to_human 도구를 호출한 뒤에는, 사용자에게 \"문의하신 내용은 담당자에게 전달되었으며,\n업무시간(평일 09:00~18:00) 내에 답변드리겠습니다.\"라고 안내하세요."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        0
+      ],
+      "id": "41057ff7-5da4-4aaf-ba86-72829542ed78",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        192,
+        176
+      ],
+      "id": "ab8483a4-38f6-42e8-94e8-80c33ed0c648",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "4lTSkg3fr8VJaI7C",
+          "name": "Google Gemini account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        320,
+        192
+      ],
+      "id": "cbeca98a-432a-4101-97d6-354e23d8339e",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "description": "FAQ로 답변할 수 없는 질문이거나 개인 정보 조회가 필요한 문의, 불만 성격의 문의일 때 사용합니다.\nquestion에는 임직원의 실제 질문 원문을, reason에는 이관이 필요한 이유를 전달하세요.",
+        "workflowId": {
+          "__rl": true,
+          "value": "LfkYMQVv4h2plTgk",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/LfkYMQVv4h2plTgk",
+          "cachedResultName": "Tool_ 담당자이관"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "question": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('question', ``, 'string') }}",
+            "reason": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('reason', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "question",
+              "displayName": "question",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "reason",
+              "displayName": "reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        176
+      ],
+      "id": "8da1d02b-5223-423a-a88c-4f7440daa409",
+      "name": "handoff_to_human"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "handoff_to_human": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Seoul",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "c3b84fb0-98c0-43dc-875e-b66941bba4a0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2053fbf4932b51fffb1369c3ebab82155021e5c6829c330c594ef147f4f06aae"
+  },
+  "nodeGroups": [],
+  "id": "4YWFnvtEkNa4U5Yl",
+  "tags": []
+}

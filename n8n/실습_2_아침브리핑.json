@@ -1,0 +1,362 @@
+{
+  "name": "실습_2_아침브리핑",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://api.open-meteo.com/v1/forecast?latitude=37.5665&longitude=126.9780&current_weather=true",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -176,
+        16
+      ],
+      "id": "f5b99714-ac95-4b1b-b06e-13db9da9d288",
+      "name": "날씨조회"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        16
+      ],
+      "id": "6d28d678-1d83-4069-82d9-914bcc5d14ce",
+      "name": "Execute workflow"
+    },
+    {
+      "parameters": {
+        "url": "https://api.frankfurter.dev/v1/latest?base=USD&symbols=KRW,JPY",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -16,
+        16
+      ],
+      "id": "a0450724-5ee9-40a5-b801-a62e2a40b908",
+      "name": "환율조회"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d9fbf788-8e77-4c29-ab79-a22db36b5ff2",
+              "name": "weather_message",
+              "value": "={{ '서울 현재 기온은 ' + $('날씨조회').item.json.current_weather.temperature + '도, 바람은 시속 ' + $('날씨조회').item.json.current_weather.windspeed + 'km 입니다.' }}",
+              "type": "string"
+            },
+            {
+              "id": "f36f34a7-d08a-45b5-9949-7513a568bbda",
+              "name": "rate_message",
+              "value": "={{ '1달러는 ' + $('환율조회').item.json.rates.KRW + '원, 100엔은 ' + Math.round($('환율조회').item.json.rates.KRW / $('환율조회').item.json.rates.JPY * 100) + '원입니다. (' + $('환율조회').item.json.date + '고시)' }}",
+              "type": "string"
+            },
+            {
+              "id": "670214c2-f24b-4c36-ba23-2d6551460c8a",
+              "name": "usd_krw",
+              "value": "=  {{ $('환율조회').item.json.rates.KRW }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        144,
+        16
+      ],
+      "id": "2fdc6db1-5d01-45cb-bc8a-327be1a79683",
+      "name": "브리핑작성"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 3
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -448,
+        -192
+      ],
+      "id": "2043a360-51dd-4ea5-b2be-700f10b1ff40",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "66d84561-75cf-437a-96be-2a3d786bf111",
+              "name": "briefing",
+              "value": "={{ '아침브리핑 ' + $now.setZone('Asia/Seoul').toFormat('MM/dd') + '\\n' + $json.weather_message + '\\n' + $json.rate_message }}",
+              "type": "string"
+            },
+            {
+              "id": "6a0f5b91-17a8-46ac-834d-7f2dc8e9032b",
+              "name": "usd_krw",
+              "value": "={{ $json.usd_krw }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        288,
+        16
+      ],
+      "id": "e9433024-f67f-4d0e-a03c-c214f9f9b59f",
+      "name": "알림문구"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "f8fe5c07-1f5f-437e-a1ad-f2e61a3cfa37",
+              "leftValue": "={{ Number($json.usd_krw) }}",
+              "rightValue": 1400,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        448,
+        16
+      ],
+      "id": "494884fe-bcf0-4034-af17-e85abc279778",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "fromEmail": "smjjang@gmail.com",
+        "toEmail": "smjjang@gmail.com",
+        "subject": "={{ '아침브리핑 ' + $now.setZone('Asia/Seoul').toFormat('MM/dd') }}",
+        "emailFormat": "text",
+        "text": "={{ $json.briefing }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        640,
+        96
+      ],
+      "id": "5f71fc64-d297-48ba-8f40-e84ba06b59b4",
+      "name": "1400 미만 이메일",
+      "webhookId": "7ee3acad-d78f-4234-8539-960328068a82",
+      "credentials": {
+        "smtp": {
+          "id": "6RTLOVwLY9KKlzIA",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "smjjang@gmail.com",
+        "toEmail": "smjjang@gmail.com",
+        "subject": "={{ '아침브리핑 ' + $now.setZone('Asia/Seoul').toFormat('MM/dd') }}",
+        "emailFormat": "text",
+        "text": "={{ $json.briefing + '\\n\\n [환율 주의] 1,400원을 넘었습니다.해외결제 발주 시점을 검토하세요' }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        640,
+        -64
+      ],
+      "id": "9c95e740-4188-4456-a639-b90786be9d96",
+      "name": "1400 이상 이메일",
+      "webhookId": "7ee3acad-d78f-4234-8539-960328068a82",
+      "credentials": {
+        "smtp": {
+          "id": "6RTLOVwLY9KKlzIA",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "날씨조회": [
+      {
+        "json": {
+          "latitude": 37.55,
+          "longitude": 127,
+          "generationtime_ms": 24.985671043395996,
+          "utc_offset_seconds": 0,
+          "timezone": "GMT",
+          "timezone_abbreviation": "GMT",
+          "elevation": 34,
+          "current_weather_units": {
+            "time": "iso8601",
+            "interval": "seconds",
+            "temperature": "°C",
+            "windspeed": "km/h",
+            "winddirection": "°",
+            "is_day": "",
+            "weathercode": "wmo code"
+          },
+          "current_weather": {
+            "time": "2026-10-25T04:00",
+            "interval": 900,
+            "temperature": 21.8,
+            "windspeed": 4.7,
+            "winddirection": 90,
+            "is_day": 1,
+            "weathercode": 0
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "환율조회": [
+      {
+        "json": {
+          "amount": 1,
+          "base": "USD",
+          "date": "2026-10-23",
+          "rates": {
+            "JPY": 156.8,
+            "KRW": 1324.45
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "브리핑작성": [
+      {
+        "json": {
+          "weather_message": "서울 현재 기온은 21.8도, 바람은 시속 4.7km 입니다.",
+          "rate_message": "1달러는 1324.45원, 100엔은 845원입니다. (2026-10-23고시)",
+          "usd_krw": "  1324.45"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "날씨조회": {
+      "main": [
+        [
+          {
+            "node": "환율조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute workflow": {
+      "main": [
+        [
+          {
+            "node": "날씨조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "환율조회": {
+      "main": [
+        [
+          {
+            "node": "브리핑작성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "브리핑작성": {
+      "main": [
+        [
+          {
+            "node": "알림문구",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "알림문구": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "1400 이상 이메일",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "1400 미만 이메일",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ca702db1-84dd-42d4-8157-62a5941ca271",
+  "meta": {
+    "instanceId": "2053fbf4932b51fffb1369c3ebab82155021e5c6829c330c594ef147f4f06aae"
+  },
+  "nodeGroups": [],
+  "id": "zd9IE0sDi9iV2ZrA",
+  "tags": []
+}
